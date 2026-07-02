@@ -1,3 +1,4 @@
 # youtube backend project
 
 This is a backend practice project
+Data Model link (https://www.youtube.com/redirect?event=video_description&redir_token=QUFFLUhqbnB3UXlrdUdzMklfeXBaNkR5R084MDZNcmJ3UXxBQ3Jtc0traks3c2JYeDB6dEQzcHo4c1pJNkNTUWh3VVEtY0FNeDB2WjctdzlfeTFud05UbUlRWlctdWZaOTlqRGhfck5lMWxiNnk3d3FvTWw5dk5UY21obDZtcjJZMy1yeTNOUG1wdXJfSXFLN3M4NVB0RnRfWQ&q=https%3A%2F%2Fapp.eraser.io%2Fworkspace%2FYtPqZ1VogxGy1jzIDkzj%3Forigin%3Dshare&v=9B4CvtzXRpc)
