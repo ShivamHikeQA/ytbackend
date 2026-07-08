@@ -3,6 +3,8 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
+import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
 
 // defined a method to get access and refresh token
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -115,13 +117,13 @@ const loginUser = asyncHandler( async (req, res) => {
     const {email, username, password} = req.body
 
     // step-2
-    if(!username || !email){
+    if(!(username || email)){
         throw new ApiError(400, "username or email is required")
     }
 
     // step-3
     const user = await User.findOne({
-        $or: [{username, email}]
+        $or: [{username}, {email}]
     })
 
     if(!user){
@@ -129,6 +131,11 @@ const loginUser = asyncHandler( async (req, res) => {
     }
 
     // step-4
+
+    console.log("Password entered:", password)
+    console.log("Password on DB:", user.password)
+
+    console.log( await bcrypt.compare(password, user.password))
 
     const isPasswordValid = await user.isPasswordCorrect(password)
 
@@ -140,7 +147,7 @@ const loginUser = asyncHandler( async (req, res) => {
 
     const {accessToken, refreshToken} = await generateAccessAndRefreshTokens(user._id)
 
-    const loggedInUser = await User.findById(user._id).select("-password refreshToken")
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
     // step-6
     const options = {
@@ -189,8 +196,56 @@ const logoutUser = asyncHandler ( async (req, res) => {
     .json(new ApiResponse(200, {}, "User logged Out"))
 })
 
+const refreshAccessToken = asyncHandler(async (req, res) => {
+    const incommingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+
+    if (!incommingRefreshToken) {
+        throw new ApiError(401, "unauthorized request")
+    }
+
+    try {
+        const decodedToken = jwt.verify(
+        incommingRefreshToken,
+        process.env.REFRESH_TOKEN_SECERET
+    )
+
+    const user = await User.findById(decodedToken?._id)
+
+    if(!user) {
+        throw new ApiError(401, "Invalid refresh token")
+    }
+
+    if(incommingRefreshToken !== user?.refreshToken) {
+        throw new ApiError(401, "Refresh Token is experied or used")
+    }
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    const {accessToken, newRefreshToken} = await generateAccessAndRefreshTokens(user._id)
+
+    return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", newRefreshToken, options)
+    .json(
+        new ApiResponse(
+            200,
+            {accessToken, refreshToken: newRefreshToken},
+            "Access token refreshed"
+        )
+    )
+    } catch (error) {
+        throw new ApiError(401, error?.message || "Invalid refresh token")
+    }
+
+})
+
 export { 
     registerUser,
     loginUser,
-    logoutUser
+    logoutUser,
+    refreshAccessToken
  };
