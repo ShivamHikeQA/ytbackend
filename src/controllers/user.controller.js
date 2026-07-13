@@ -6,6 +6,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { Subscription } from "../models/subscription.model.js";
+import mongoose from "mongoose";
 
 // defined a method to get access and refresh token
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -23,6 +24,9 @@ const generateAccessAndRefreshTokens = async (userId) => {
         throw new ApiError(500, "Somthing went wrong while generating refresh and access token")
     }
 }
+
+// <===  controllers  ===>
+
 // register user controller logic
 const registerUser = asyncHandler( async (req, res) =>{
     // these are the steps we will follow to register a user ==>>
@@ -76,7 +80,7 @@ const avatar = await uploadOnCloudinary(avatarLocalPath);
 const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
 if(!avatar){
-    throw new ApiError(400, "Avatar file is required")
+    throw new ApiError(500, "Failed to upload avatar on cloudinary")
 }
 
 // Step-6 
@@ -105,6 +109,7 @@ return res.status(201).json(
 )
 
 })
+
 
 // login user controller logic
 const loginUser = asyncHandler( async (req, res) => {
@@ -180,7 +185,7 @@ const logoutUser = asyncHandler ( async (req, res) => {
         req.user._id,
         {
             $set: {
-                refreshToken: undefined
+                refreshToken: 1 // this removes the field from document
             }
         },
         {
@@ -202,16 +207,16 @@ const logoutUser = asyncHandler ( async (req, res) => {
 
 // refresh access token controller logic
 const refreshAccessToken = asyncHandler(async (req, res) => {
-    const incommingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
 
-    if (!incommingRefreshToken) {
+    if (!incomingRefreshToken) {
         throw new ApiError(401, "unauthorized request")
     }
 
     try {
         const decodedToken = jwt.verify(
-        incommingRefreshToken,
-        process.env.REFRESH_TOKEN_SECERET
+        incomingRefreshToken,
+        process.env.REFRESH_TOKEN_SECRET
     )
 
     const user = await User.findById(decodedToken?._id)
@@ -220,8 +225,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         throw new ApiError(401, "Invalid refresh token")
     }
 
-    if(incommingRefreshToken !== user?.refreshToken) {
-        throw new ApiError(401, "Refresh Token is experied or used")
+    if(incomingRefreshToken !== user?.refreshToken) {
+        throw new ApiError(401, "Refresh token has expired or has already been used")
     }
 
     const options = {
@@ -253,7 +258,7 @@ const changeCurrentPassword = asyncHandler( async (req, res) => {
     const { oldPassword, newPassword} = req.body
 
     const user = await User.findById(req.user?._id)
-    const isPasswordCorrect = await isPasswordCorrect(oldPassword)
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
 
     if(!isPasswordCorrect) {
         throw new ApiError(400, "Invalid Old Password")
@@ -367,7 +372,7 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
         },
         {
             $lookup: {
-                from: "Subscription",
+                from: "subscriptions",
                 localField: "_id",
                 foreignField: "channel",
                 as: "subscribers"
@@ -433,12 +438,13 @@ const getWatchHistory = asyncHandler(async(req, res) => {
             $lookup: {
                 from: "videos",
                 localField: "watchHistory",
+                foreignField: "_id",
                 as: "watchHistory",
                 pipeline: [
                     {
                         $lookup: {
                             from: "users",
-                            localfield: "owner",
+                            localField: "owner",
                             foreignField: "_id",
                             as: "owner",
                             pipeline: [
@@ -463,6 +469,10 @@ const getWatchHistory = asyncHandler(async(req, res) => {
             }
         }
     ])
+
+    if(!user.length){
+        throw new ApiError(404, "User not found")
+    }
 
     return res
     .status(200)
