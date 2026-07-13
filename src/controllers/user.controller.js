@@ -24,6 +24,9 @@ const generateAccessAndRefreshTokens = async (userId) => {
         throw new ApiError(500, "Somthing went wrong while generating refresh and access token")
     }
 }
+
+// <===  controllers  ===>
+
 // register user controller logic
 const registerUser = asyncHandler( async (req, res) =>{
     // these are the steps we will follow to register a user ==>>
@@ -77,7 +80,7 @@ const avatar = await uploadOnCloudinary(avatarLocalPath);
 const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
 if(!avatar){
-    throw new ApiError(400, "Avatar file is required")
+    throw new ApiError(500, "Failed to upload avatar on cloudinary")
 }
 
 // Step-6 
@@ -107,7 +110,6 @@ return res.status(201).json(
 
 })
 
-// <== Controllers ==>>
 
 // login user controller logic
 const loginUser = asyncHandler( async (req, res) => {
