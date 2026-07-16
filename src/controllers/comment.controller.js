@@ -74,9 +74,59 @@ const addComment = asyncHandler(async (req, res) => {
     )
 })
 
+
 const updateComment = asyncHandler(async (req, res) => {
     const { commentId, content } = req.body;
+
+    if(!mongoose.Types.ObjectId.isValid(commentId)) {
+        throw new ApiError(400, "commentId is not Valid")
+    }
+
+    if(!content?.trim()) {
+        throw new ApiError(400, "Comment content is required");
+    }
+
+    const comment = await Comment.findById(commentId);
+    if(!comment) {
+        throw new ApiError(404, "Comment not found");
+    }
+
+    if(comment.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You are not authorized to update this comment");
+    }
+
+    comment.content = content.trim();
+    await comment.save();
+    await comment.populate("owner", "username fullName avatar");
+
+    return res.status(200).json(    
+        new ApiResponse(200, comment, "comment updated successfully")
+    )
 })
 
 
-export { getVideoComments, addComment, updateComment }
+const deleteComment = asyncHandler(async (req, res) => {
+    const { commentId } = req.params;
+
+    if(!mongoose.Types.ObjectId.isValid(commentId)) {
+        throw new ApiError(400, "commentId is not Valid")
+    }
+
+    const comment = await Comment.findById(commentId);
+    if(!comment) {
+        throw new ApiError(404, "Comment not found");
+    }
+
+    if(comment.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You are not authorized to delete this comment");
+    }
+
+    await comment.deleteOne();
+
+    return res.status(200).json(
+        new ApiResponse(200, {}, "comment deleted successfully")
+    )
+})
+
+
+export { getVideoComments, addComment, updateComment, deleteComment }
