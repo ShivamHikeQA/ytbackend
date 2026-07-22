@@ -46,6 +46,26 @@ const userSchema = new Schema(
     refreshToken: {
       type: String,
     },
+    // adding for the stripe or payment integration
+    stripeCustomerId: {
+      type: String,
+    },
+    defaultPaymentMethodId: {
+      type: String,
+    },
+    subscriptionId: {
+      type: String,
+  
+    },
+    membershipType: {
+      type: String,
+      enum: ["FREE", "PREMIUM", "FAMILY", "STUDENT"],
+      default: "FREE"
+    },
+    membershipStatus: {
+      type: String,
+      enum: ["active", "past_due", "cancelled", "trialing", "expired"],
+    }
   },
   {
     timestamps: true,
