@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { asyncHandler } from "./asyncHandler";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -22,4 +23,25 @@ const createSetupIntentOnStripe = async (stripeCustomerId) => {
   return setupIntent;
 };
 
-export { createCustomerOnStripe, createSetupIntentOnStripe };
+const attachPaymentMethodOnStripe = async (paymentMethodId, stripeCustomerId) => {
+  return await stripe.paymentMethods.attach(paymentMethodId, {
+    customer: stripeCustomerId,
+  });
+};
+
+const setDefaultPaymentMethodOnStripe = async(stripeCustomerId, paymentMethodId) => {
+  return await stripe.customers.update(stripeCustomerId, {
+    invoice_settings: {
+      default_payment_method: paymentMethodId,
+    },
+  });
+}
+
+
+const recordUsage = asyncHandler( async(req, res) => {
+  
+})
+
+export { createCustomerOnStripe, createSetupIntentOnStripe, attachPaymentMethodOnStripe,
+  setDefaultPaymentMethodOnStripe
+ };
