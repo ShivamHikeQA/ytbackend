@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { User } from "../models/user.model";
+import { UsageLog } from "../models/usageLog.model";
 import {
   createCustomerOnStripe,
   createSetupIntentOnStripe,
@@ -123,5 +124,33 @@ const attachPaymentMethod = asyncHandler(
     .status(200)
     .json(new ApiResponse(200, savedPaymentMethod, "paymentMethodId is updated successfully"));
 });
+
+
+const createUsageBilling = asyncHandler( async(req, res) => {
+  const { userId } = req.params;
+  const { actionType, quantity } = req.body;
+
+  if(!mongoose.Types.ObjectId.isValid(userId)){
+    throw new ApiError(400, "video id is not valid")
+  }
+
+  const actions = [
+        "WATCH_VIDEO",
+        "DOWNLOAD_VIDEO",
+        "AI_SUMMARY",
+        "SEARCH"
+    ];
+
+  if (!actions.includes(actionType)) {
+    throw new ApiError(400, "Invalid actionType");
+  }
+
+  if(quantity === undefined || !Number.isInteger(quantity) || quantity <= 0) {
+    throw new ApiError(400, "quantity must be a positive integer")
+  }
+
+  const user = User.findById(userId);
+  
+})
 
 export { createStripeCustomer, createSetupIntent, attachPaymentMethod };
