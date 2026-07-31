@@ -66,9 +66,16 @@ model WorkOrder {
   scheduledDate DateTime
   completedDate DateTime?
 
+  machineId Int
+  engineerId Int
+
   machine Machine @relation(fields: [machineId], references: [id])
   engineer Engineer  @relation(fields: [engineerId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([machineId])
+  @@index([engineerId])
+  @@index([status])
 }
